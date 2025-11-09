@@ -1,0 +1,113 @@
+header("Content-Type: application/json; charset=UTF-8");
+header("Access-Control-Allow-Origin: *");
+
+// === 1. Lê o arquivo JSON ===
+$arquivo = 'avioes.json';
+$conteudo = file_get_contents($arquivo);
+
+if ($conteudo === false) {
+    http_response_code(500);
+    echo json_encode(["erro" => "Arquivo 'avioes.json' não encontrado."]);
+    exit;
+}
+
+$dados = json_decode($conteudo, true);
+if (json_last_error() !== JSON_ERROR_NONE) {
+    http_response_code(500);
+    echo json_encode(["erro" => "Formato JSON inválido."]);
+    exit;
+}
+
+$avioes = $dados['avioes'] ?? [];
+
+// === 2. Pega parâmetros da URL ===
+$id = $_GET['id'] ?? null;
+$fabricante = $_GET['fabricante'] ?? null;
+$modelo = $_GET['modelo'] ?? null;
+$capacidade = $_GET['capacidade'] ?? null;
+
+$resultado = [];
+
+// === 3. Aplica filtros (prioridade: id > fabricante > modelo > capacidade) ===
+if ($id !== null) {
+    $id = (int)$id;
+    foreach ($avioes as $aviao) {
+        if ($aviao['id'] == $id) {
+            $resultado[] = $aviao;
+            break;
+        }
+    }
+}
+elseif ($fabricante !== null) {
+    $fabricante = trim($fabricante);
+    foreach ($avioes as $aviao) {
+        if (strcasecmp($aviao['fabricante'], $fabricante) === 0) {
+            $resultado[] = $aviao;
+        }
+    }
+}
+elseif ($modelo !== null) {
+    $modelo = trim($modelo);
+    foreach ($avioes as $aviao) {
+        if (stripos($aviao['modelo'], $modelo) !== false) {
+            $resultado[] = $aviao;
+        }
+    }
+}
+elseif ($capacidade !== null) {
+    //$capacidade = (int)$min_capacidade;
+    foreach ($avioes as $aviao) {
+        if ($aviao['capacidade'] >= $capacidade) {
+            $resultado[] = $aviao;
+        }
+    }
+}
+else {
+    $resultado = $avioes;
+}
+
+// === 4. Resposta ===
+if (empty($resultado)) {
+    http_response_code(404);
+    echo json_encode([
+        "mensagem" => "Nenhum avião encontrado",
+        "filtros_usados" => [
+            "id" => $id,
+            "fabricante" => $fabricante,
+            "modelo" => $modelo,
+            "capacidade_minima" => $min_capacidade
+        ]
+    ]);
+} else {
+    echo json_encode($resultado, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+}
+
+___________________
+ // Capturando o endereço da URL
+    $url = "http://localhost/API_para_PI/api.php";
+
+    // Armazenando o conteúdo da URL
+    $resultado = file_get_contents($url);
+ 
+    // Decodificando o conteúdo e convertendo em um Array Associativo (Chave => Valor)
+    $avioes = json_decode($resultado, true);
+
+    // Construíndo a estrutura do método REST
+    $estrutura = [
+        'http' => [
+            'method' => 'GET',
+            'header' => 'Content-Type: application/json\r\n',
+            'content' => json_encode($avioes)
+        ]
+    ];
+
+    // 
+    $dados = $avioes["avioes"];
+___________________
+Passo,O que você faz,Exemplo simples
+1,Criar um arquivo PHP (ex: api.php),Um único arquivo!
+2,Ouvir o pedido (o que o cliente quer?),Ver se veio um CEP na URL: api.php?cep=01001000
+3,Pegar os dados,Consultar o BrasilAPI ou um banco de dados
+4,Montar a resposta em JSON,"Transformar os dados em um texto no formato { ""rua"": ""Praça da Sé"" }"
+5,Enviar a resposta,echo do JSON + cabeçalho correto
+6,Colocar online,"Subir o arquivo para um servidor (Hostinger, Vercel, etc.)"
